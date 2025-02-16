@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
             handleImageUpload(file);
         })
         .catch(error => console.error('Error loading test image:', error));
+
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const originalImage = document.getElementById('original-image');
@@ -19,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentFile = null;
     let originalFilename = 'test.jpg';
+    let currentEncodedBlob = null;  // Store the current encoded blob
 
     // Drag and drop handlers
     dropZone.addEventListener('dragover', (e) => {
@@ -39,90 +41,99 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // File input handler
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             handleImageUpload(e.target.files[0]);
         }
     });
 
-    // Quality slider handler
     qualitySlider.addEventListener('input', (e) => {
         qualityValue.textContent = `${e.target.value}%`;
         updateEncodedImage();
     });
 
-    // Dimension inputs handler
     widthInput.addEventListener('input', updateEncodedImage);
     heightInput.addEventListener('input', updateEncodedImage);
 
-    // Download button handler
-    downloadBtn.addEventListener('click', () => {
-        if (encodedImage.src) {
-            const link = document.createElement('a');
-            link.href = encodedImage.src;
-            const width = parseInt(widthInput.value) || originalImage.naturalWidth;
-            const height = parseInt(heightInput.value) || originalImage.naturalHeight;
-            const quality = parseInt(qualitySlider.value);
-            link.download = `${originalFilename}-${width}x${height}-q${quality}.jpg`;
-            link.click();
-        }
-    });
+    async function encodeImage(img, width, height, quality) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        return new Promise(resolve => {
+            canvas.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+        });
+    }
 
     async function handleImageUpload(file) {
         currentFile = file;
         originalFilename = file.name.replace(/\.[^/.]+$/, '');
         
-        // Display original image
         const originalUrl = URL.createObjectURL(file);
         originalImage.src = originalUrl;
         
-        // Update original image info
-        document.getElementById('original-size').textContent = formatFileSize(file.size);
+        document.getElementById('original-size-readable').textContent = formatFileSize(file.size);
+        document.getElementById('original-size-bytes').textContent = file.size;
         
         originalImage.onload = () => {
             document.getElementById('original-dimensions').textContent = 
                 `${originalImage.naturalWidth}x${originalImage.naturalHeight}`;
             
-            // Set default dimensions
             widthInput.value = originalImage.naturalWidth;
             heightInput.value = originalImage.naturalHeight;
             
             updateEncodedImage();
+            URL.revokeObjectURL(originalUrl);
         };
     }
 
     async function updateEncodedImage() {
         if (!currentFile) return;
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        // Calculate dimensions
-        let newWidth = parseInt(widthInput.value) || originalImage.naturalWidth;
-        let newHeight = parseInt(heightInput.value) || originalImage.naturalHeight;
-
-        // Set canvas dimensions
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-
-        // Draw image with new dimensions
-        ctx.drawImage(originalImage, 0, 0, newWidth, newHeight);
-
-        // Convert to JPEG with selected quality
+        const width = parseInt(widthInput.value) || originalImage.naturalWidth;
+        const height = parseInt(heightInput.value) || originalImage.naturalHeight;
         const quality = parseInt(qualitySlider.value) / 100;
-        const encodedUrl = canvas.toDataURL('image/jpeg', quality);
-        encodedImage.src = encodedUrl;
 
-        // Update encoded image info
-        encodedImage.onload = async () => {
-            const response = await fetch(encodedUrl);
-            const blob = await response.blob();
-            document.getElementById('encoded-size').textContent = formatFileSize(blob.size);
-            document.getElementById('encoded-dimensions').textContent = 
-                `${newWidth}x${newHeight}`;
-        };
+        try {
+            // Generate the encoded blob
+            currentEncodedBlob = await encodeImage(originalImage, width, height, quality);
+            
+            // Create and display the encoded image
+            const encodedUrl = URL.createObjectURL(currentEncodedBlob);
+            encodedImage.src = encodedUrl;
+            
+            // Update size information
+            document.getElementById('encoded-size-readable').textContent = formatFileSize(currentEncodedBlob.size);
+            document.getElementById('encoded-size-bytes').textContent = currentEncodedBlob.size;
+            document.getElementById('encoded-dimensions').textContent = `${width}x${height}`;
+            
+            // Clean up the URL after the image loads
+            encodedImage.onload = () => URL.revokeObjectURL(encodedUrl);
+        } catch (error) {
+            console.error('Error encoding image:', error);
+        }
     }
+
+    downloadBtn.addEventListener('click', () => {
+        if (currentEncodedBlob) {
+            const width = parseInt(widthInput.value) || originalImage.naturalWidth;
+            const height = parseInt(heightInput.value) || originalImage.naturalHeight;
+            const quality = parseInt(qualitySlider.value);
+            
+            // Use the exact same blob that's being previewed
+            const url = URL.createObjectURL(currentEncodedBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${originalFilename}-${width}x${height}-q${quality}-${currentEncodedBlob.size}b.jpg`;
+            link.click();
+            
+            // Clean up
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+    });
 
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
