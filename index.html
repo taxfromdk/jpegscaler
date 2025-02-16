@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Encoder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="upload-section">
+            <div id="drop-zone" class="drop-zone">
+                <p>Drop image here or</p>
+                <input type="file" id="file-input" accept="image/*">
+                <label for="file-input" class="file-input-label">Browse Files</label>
+            </div>
+        </div>
+        
+        <div class="image-comparison">
+            <div class="image-container original">
+                <h2>Original Image</h2>
+                <img id="original-image" src="" alt="Original image">
+                <div class="image-info" id="original-info">
+                    <p>Size: <span id="original-size">-</span></p>
+                    <p>Dimensions: <span id="original-dimensions">-</span></p>
+                </div>
+            </div>
+
+            <div class="image-container encoded">
+                <h2>Encoded Image</h2>
+                <img id="encoded-image" src="" alt="Encoded image">
+                <div class="image-info" id="encoded-info">
+                    <p>Size: <span id="encoded-size">-</span></p>
+                    <p>Dimensions: <span id="encoded-dimensions">-</span></p>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="quality">Quality:</label>
+                        <input type="range" id="quality" min="0" max="100" value="80">
+                        <span id="quality-value">80%</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="width">Width:</label>
+                        <input type="number" id="width" placeholder="Auto">
+                    </div>
+                    <div class="control-group">
+                        <label for="height">Height:</label>
+                        <input type="number" id="height" placeholder="Auto">
+                    </div>
+                    <button id="download-btn">Download Encoded Image</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
