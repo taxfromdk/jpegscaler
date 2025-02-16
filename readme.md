@@ -1,0 +1,1 @@
+My mother has been struggeling to scale jpegs when sending them to exebitions. Therefore I created this small utility
