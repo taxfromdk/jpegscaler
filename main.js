@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Load test image on startup
+    fetch('test.jpg')
+        .then(response => response.blob())
+        .then(blob => {
+            const file = new File([blob], 'test.jpg', { type: 'image/jpeg' });
+            handleImageUpload(file);
+        })
+        .catch(error => console.error('Error loading test image:', error));
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
     const originalImage = document.getElementById('original-image');
@@ -10,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadBtn = document.getElementById('download-btn');
 
     let currentFile = null;
+    let originalFilename = 'test.jpg';
 
     // Drag and drop handlers
     dropZone.addEventListener('dragover', (e) => {
@@ -52,13 +61,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (encodedImage.src) {
             const link = document.createElement('a');
             link.href = encodedImage.src;
-            link.download = 'encoded-image.jpg';
+            const width = parseInt(widthInput.value) || originalImage.naturalWidth;
+            const height = parseInt(heightInput.value) || originalImage.naturalHeight;
+            const quality = parseInt(qualitySlider.value);
+            link.download = `${originalFilename}-${width}x${height}-q${quality}.jpg`;
             link.click();
         }
     });
 
     async function handleImageUpload(file) {
         currentFile = file;
+        originalFilename = file.name.replace(/\.[^/.]+$/, '');
         
         // Display original image
         const originalUrl = URL.createObjectURL(file);
